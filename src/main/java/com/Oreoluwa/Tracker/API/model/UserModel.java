@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.util.Date;
 
 @Entity
-@Table(name= "users")
+@Table(name = "users")
 @Data
 @NoArgsConstructor
 public class UserModel {
@@ -19,12 +19,10 @@ public class UserModel {
     private long id;
 
 
-   // @Size(min = 20, max = 50, message = "First name must be between 20 and 50 characters")
+    // @Size(min = 20, max = 50, message = "First name must be between 20 and 50 characters")
     private String firstName;
 
-
     private String lastName;
-
 
     private String email;
 
@@ -59,11 +57,14 @@ public class UserModel {
 
 
     @PrePersist
-    private void onCreate(){
-        createdDate= new Date();
+    private void onCreate() {
+
+        createdDate = new Date();
     }
+
     @PreUpdate
-    private void onUpdate(){
-        updatedDate= new Date();
+    private void onUpdate() {
+
+        updatedDate = new Date();
     }
 }

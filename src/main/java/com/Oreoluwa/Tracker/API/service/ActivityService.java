@@ -5,28 +5,24 @@ import com.Oreoluwa.Tracker.API.Exception.ApiRequestException;
 import com.Oreoluwa.Tracker.API.domain.request.ActivityDateRangeRequest;
 import com.Oreoluwa.Tracker.API.domain.request.CreateActivityRequest;
 import com.Oreoluwa.Tracker.API.domain.request.UpdateActivityRequest;
-import com.Oreoluwa.Tracker.API.domain.response.ActivityDateRangeResponse;
-import com.Oreoluwa.Tracker.API.domain.response.CloudinaryResponse;
-import com.Oreoluwa.Tracker.API.domain.response.CreateActivityResponse;
-import com.Oreoluwa.Tracker.API.domain.response.UpdateActivityResponse;
+import com.Oreoluwa.Tracker.API.domain.response.*;
 import com.Oreoluwa.Tracker.API.model.DailyActivity;
+import com.Oreoluwa.Tracker.API.model.UserModel;
 import com.Oreoluwa.Tracker.API.repository.ActivityRepository;
 
+import com.Oreoluwa.Tracker.API.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 
-import java.io.IOException;
 import java.sql.Timestamp;
-import java.text.ParseException;
 
-import java.util.List;
+import java.time.LocalDate;
+import java.util.*;
 
-import java.util.Optional;
 import java.util.stream.Collectors;
-
 
 
 @Slf4j
@@ -38,29 +34,53 @@ public class ActivityService {
 
     @Autowired
     private CloudinaryService cloudinaryService;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private UserService userService;
 
+    @Transactional
+    public CreateActivityResponse createDailyActivity(String userIdRequest, CreateActivityRequest activity) throws ApiRequestException {
 
-    public CreateActivityResponse createDailyActivity(CreateActivityRequest activity, MultipartFile file) throws IOException {
-        Optional<DailyActivity> dailyActivity = activityRepository
-                .findBySubject(activity.getSubject());
-
-        if (dailyActivity.isPresent()) {
-            throw new ApiRequestException("Activity already exists");
+        Optional<UserModel> userId = userRepository.findById(Long.valueOf(userIdRequest));
+        if (!userId.isPresent()) {
+            throw new ApiRequestException("You are not a valid user on the system");
         }
+        UserModel userModel = userId.get();
+        LocalDate createdDate = LocalDate.now();
+        Timestamp startDate = Timestamp.valueOf(createdDate.atStartOfDay());
+        log.info("Date ----> {}", startDate);
+        log.info("Local Date ----> {}", LocalDate.now());
+        Optional<DailyActivity> existingActivity = activityRepository
+                .findByUserIdAndCreatedDate(userModel, startDate);
 
-
+        if (existingActivity.isPresent()) {
+            throw new ApiRequestException("User has already created an activity for today.");
+        }
 
 
         DailyActivity createDailyActivity = new DailyActivity();
-// save image to cloudinary here first and save the path to your setImage
+        // save image to cloudinary here first and save the path to your setImage
         //createDailyActivity.setImageUrl(cloudinaryResponse.getUrl());
-        if (!file.isEmpty()) {
-            CloudinaryResponse response = cloudinaryService.uploadFile(file);
-            createDailyActivity.setImageUrl(response.getSecureUrl());
+        List<String> imageUrlList;
+        if (!activity.getFile().isEmpty()) {
+
+            imageUrlList = new ArrayList<>();
+            //for (activity.getFile().)
+            activity.getFile().stream().forEach(files ->
+            {
+                CloudinaryResponse response = cloudinaryService.uploadFile(files);
+                imageUrlList.add(response.getSecureUrl());
+
+            });
+            // CloudinaryResponse response = cloudinaryService.uploadFile(file);
+
+            createDailyActivity.setImageUrl(String.join(",",imageUrlList) );
         }
+        createDailyActivity.setUserId(userModel);
         createDailyActivity.setSubject(activity.getSubject());
         createDailyActivity.setDescription((activity.getDescription()));
-        //createDailyActivity.setImage(activity.getImage());
+
         createDailyActivity.setSupervisor(activity.getSupervisor());
         createDailyActivity.setLinkedinUrl(activity.getLinkedinUrl());
 
@@ -71,7 +91,7 @@ public class ActivityService {
     }
 
 
-    public UpdateActivityResponse updateDailyActivity(long id, UpdateActivityRequest details, MultipartFile file) throws IOException {
+    public UpdateActivityResponse updateDailyActivity(UpdateActivityRequest details) throws ApiRequestException {
         Optional<DailyActivity> findActivity = activityRepository
                 .findBySubject(details.getSubject());
 
@@ -81,10 +101,15 @@ public class ActivityService {
 
 
         DailyActivity updateDailyActivity = findActivity.get();
+        List<String> fileUploadResponse = new ArrayList<>();
 
-        if (!file.isEmpty()) {
-            CloudinaryResponse response = cloudinaryService.uploadFile(file);
-            updateDailyActivity.setImageUrl(response.getSecureUrl());
+        if (!details.getFile().isEmpty()) {
+            details.getFile().stream().forEach(file -> {
+                CloudinaryResponse response = cloudinaryService.uploadFile(file);
+                fileUploadResponse.add(response.getSecureUrl());
+            });
+
+            updateDailyActivity.setImageUrl(String.join(",",fileUploadResponse) );
         }
 
 
@@ -100,42 +125,56 @@ public class ActivityService {
     }
 
 
-    public String uploadImage(long id, MultipartFile file) throws Exception {
-        // 1. Fetch the activity by ID
-        Optional<DailyActivity> optionalActivity = activityRepository.findById(id);
+//    public String uploadImage(long id, MultipartFile file) throws Exception {
+//        // 1. Fetch the activity by ID
+//        Optional<DailyActivity> optionalActivity = activityRepository.findById(id);
+//
+//        if (optionalActivity.isEmpty()) {
+//            throw new ApiRequestException("Activity not found with ID: " + id);
+//        }
+//        if (file.isEmpty()) {
+//            throw new ApiRequestException("File is empty. Please upload a valid image.");
+//        }
+//
+//        DailyActivity activity = optionalActivity.get();
+//
+//        // 2. Upload the image to Cloudinary
+//        CloudinaryResponse response;
+//        try {
+//            response = cloudinaryService.uploadFile(file);
+//        } catch (ApiRequestException e) {
+//            throw new ApiRequestException("Image upload failed");
+//        }
+//
+//        // 3. Update the activity with the Cloudinary URL
+//        activity.setImageUrl(response.getSecureUrl());
+//
+//
+//
+//        // 4. Save the updated activity
+//        activityRepository.save(activity);
+//
+//        return activity.getImageUrl();
+//    }
+//
 
-        if (optionalActivity.isEmpty()) {
-            throw new ApiRequestException("Activity not found with ID: " + id);
-        }
-        if (file.isEmpty()) {
-            throw new ApiRequestException("File is empty. Please upload a valid image.");
-        }
+    public ViewOneActivityResponse viewOneActivity(long id) {
+        Optional<DailyActivity> optionalDailyActivity = activityRepository.findById(id);
 
-        DailyActivity activity = optionalActivity.get();
+        DailyActivity foundActivity = optionalDailyActivity.get();
+        Optional<UserModel> userModel = userRepository.findById(foundActivity.getUserId().getId());
 
-        // 2. Upload the image to Cloudinary
-        CloudinaryResponse response;
-        try {
-            response = cloudinaryService.uploadFile(file);
-        } catch (IOException e) {
-            throw new ApiRequestException("Image upload failed");
-        }
+        UserModel user = userModel.get();
 
-        // 3. Update the activity with the Cloudinary URL
-        activity.setImageUrl(response.getSecureUrl());
-
-
-
-        // 4. Save the updated activity
-        activityRepository.save(activity);
-
-        return activity.getImageUrl();
-    }
-
-
-    public Optional<DailyActivity> viewOneActivity(long id) {
-
-        return activityRepository.findById(id);
+        activityRepository.save(foundActivity);
+        return ViewOneActivityResponse.builder()
+                .supervisor(foundActivity.getSupervisor())
+                .fullName(user.getFirstName() + " " + user.getLastName())
+                .description(foundActivity.getDescription())
+                .subject(foundActivity.getSubject())
+                .linkedInUrl(foundActivity.getLinkedinUrl())
+                .imageUrl(Arrays.asList(foundActivity.getImageUrl().split(",")))
+                .build();
     }
 
     public List<DailyActivity> getAllActivities() {
@@ -143,17 +182,15 @@ public class ActivityService {
         return activityRepository.findAll();
     }
 
-    public List<ActivityDateRangeResponse> getActivityByDateRange(ActivityDateRangeRequest dateRangeRequest) throws ParseException {
+    public List<ActivityDateRangeResponse> getActivityByDateRange(ActivityDateRangeRequest dateRangeRequest) throws ApiRequestException {
 
         //SimpleDateFormat endDate= new SimpleDateFormat("yyyy-MM-dd");
-       String startDateStr = dateRangeRequest.getStartDate() + " 00:00:00";
-       String endDateStr = dateRangeRequest.getEndDate() + " 23:59:59";
+        String startDateStr = dateRangeRequest.getStartDate() + " 00:00:00";
+        String endDateStr = dateRangeRequest.getEndDate() + " 23:59:59";
 
         Timestamp startDate = Timestamp.valueOf(startDateStr);
         Timestamp endDate = Timestamp.valueOf(endDateStr);
 
-//        startDate.applyLocalizedPattern(dateRangeRequest.getDateRange1());
-//        endDate.applyLocalizedPattern(dateRangeRequest.getDateRange2());
         List<DailyActivity> activities =
                 activityRepository.findAllByCreatedDateBetween
                         (startDate,
@@ -164,23 +201,19 @@ public class ActivityService {
 
         //response.setImage();
         return activities.stream().map(mappedActivities -> {
-                    ActivityDateRangeResponse response = new ActivityDateRangeResponse();
-                    response.setSubject(mappedActivities.getSubject());
-                    response.setSupervisor(mappedActivities.getSupervisor());
-                    response.setDescription(mappedActivities.getDescription());
-                    //response.setImage();
-                    response.setCreatedDate(mappedActivities.getCreatedDate());
-                    response.setUpdatedDate(mappedActivities.getUpdatedDate());
-                    response.setLinkedinUrl(mappedActivities.getLinkedinUrl());
-                    return response;
-                }).collect(Collectors.toList());
-
-
-
+            ActivityDateRangeResponse response = new ActivityDateRangeResponse();
+            response.setSubject(mappedActivities.getSubject());
+            response.setSupervisor(mappedActivities.getSupervisor());
+            response.setDescription(mappedActivities.getDescription());
+            //response.setImage();
+            response.setCreatedDate(mappedActivities.getCreatedDate());
+            response.setUpdatedDate(mappedActivities.getUpdatedDate());
+            response.setLinkedinUrl(mappedActivities.getLinkedinUrl());
+            return response;
+        }).collect(Collectors.toList());
 
 
     }
-
 
 
 }

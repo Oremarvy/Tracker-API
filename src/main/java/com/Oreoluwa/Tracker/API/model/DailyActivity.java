@@ -5,52 +5,64 @@ import com.cloudinary.*;
 import com.cloudinary.utils.ObjectUtils;
 import io.github.cdimascio.dotenv.Dotenv;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+
 import jakarta.persistence.*;
 
 import lombok.Data;
-
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 
 import java.util.Date;
 
 @Entity
-@Table(name= "activity")
+@Table(name = "activity")
 @Data
 public class DailyActivity {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
 
-        private long id;
+    private long id;
 
+    @ManyToOne()
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private UserModel userId;
 
-        private String subject;
-
-
-        private String description;
-
-        private String imageUrl;
+    private String subject;
 
 
-        private String supervisor;
+    private String description;
+
+    //@ElementCollection
+
+    private String imageUrl;
 
 
-        private String linkedinUrl;
+    private String supervisor;
 
-        @Temporal(TemporalType.TIMESTAMP)
-        private Date createdDate;
 
-        @Temporal(TemporalType.TIMESTAMP)
-        private Date updatedDate;
+    private String linkedinUrl;
+    private String twitterUrl;
 
-        @PrePersist
-        private void onCreate(){
-                createdDate= new Date();
-        }
-        @PreUpdate
-        private void onUpdate(){
-                updatedDate= new Date();
-        }
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate
+    private LocalDateTime updatedDate;
+
+//    @PrePersist
+//    private void onCreate() {
+//        createdDate = new Date();
+//    }
+//
+//    @PreUpdate
+//    private void onUpdate() {
+//        updatedDate = new Date();
+//    }
 
 }

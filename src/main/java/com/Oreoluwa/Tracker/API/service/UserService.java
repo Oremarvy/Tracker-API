@@ -71,14 +71,19 @@ public class UserService {
     }
 
     public Optional<UserModel> viewUserProfile(long id){
+
         return userRepository.findById(id);
     }
 
     public List<UserModel> getAllUsers(){
+
         return userRepository.findAll();
     }
 
-
+//    public UserModel findUserById(Long id) throws ApiRequestException {
+//        return userRepository.findById(id)
+//                .orElseThrow(() -> new ApiRequestException("User not found"));
+//    }
 
 
 }

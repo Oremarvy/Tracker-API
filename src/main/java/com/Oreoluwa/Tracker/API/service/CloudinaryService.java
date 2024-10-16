@@ -20,7 +20,7 @@ public class CloudinaryService {
     private Cloudinary cloudinary;
 
 
-    public CloudinaryResponse uploadFile(MultipartFile file) throws IOException {
+    public CloudinaryResponse uploadFile(MultipartFile file) throws ApiRequestException {
         System.out.println("Uploading file to Cloudinary...");
         try {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
@@ -30,7 +30,7 @@ public class CloudinaryService {
                     (String) uploadResult.get("secure_url"));
         } catch (Exception e) {
             e.printStackTrace();
-            throw new IOException("Cloudinary upload failed: " + e.getMessage());
+            throw new ApiRequestException("Cloudinary upload failed: " + e.getMessage());
         }
 
     }

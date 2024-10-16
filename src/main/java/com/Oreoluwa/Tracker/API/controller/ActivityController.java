@@ -9,6 +9,7 @@ import com.Oreoluwa.Tracker.API.domain.request.UpdateActivityRequest;
 import com.Oreoluwa.Tracker.API.domain.response.ActivityDateRangeResponse;
 import com.Oreoluwa.Tracker.API.domain.response.CreateActivityResponse;
 import com.Oreoluwa.Tracker.API.domain.response.UpdateActivityResponse;
+import com.Oreoluwa.Tracker.API.domain.response.ViewOneActivityResponse;
 import com.Oreoluwa.Tracker.API.model.DailyActivity;
 import com.Oreoluwa.Tracker.API.service.ActivityService;
 import jakarta.validation.Valid;
@@ -37,17 +38,18 @@ public class ActivityController {
 
     //Create Daily Activity
     @PostMapping()
-    public ResponseEntity<CreateActivityResponse> createDailyActivity(@Valid @RequestBody CreateActivityRequest activity, MultipartFile file) throws IOException {
+    public ResponseEntity<CreateActivityResponse> createDailyActivity(@RequestHeader("userId") String userId, @Valid @ModelAttribute CreateActivityRequest activity) throws ApiRequestException {
         log.info("Request Payload: {} ", activity);
-        CreateActivityResponse response= activityService.createDailyActivity(activity, file);
+        log.info("user id from header {}", userId);
+        CreateActivityResponse response= activityService.createDailyActivity(userId,activity);
          //new ("Completed", "Well-done");
         return ResponseEntity.ok().body(response);
     }
 
     //Update Daily activity
     @PutMapping("/{id}")
-    public ResponseEntity<UpdateActivityResponse> updateDailyActivity(@PathVariable long id, @RequestBody UpdateActivityRequest details, MultipartFile file) throws IOException {
-        UpdateActivityResponse response = activityService.updateDailyActivity(id, details, file);
+    public ResponseEntity<UpdateActivityResponse> updateDailyActivity(@PathVariable long id, @RequestBody UpdateActivityRequest details) throws ApiRequestException {
+        UpdateActivityResponse response = activityService.updateDailyActivity( details);
 
         return ResponseEntity.ok().body(response);
                 //new ("Completed", "Updated Successfully");
@@ -62,29 +64,27 @@ public class ActivityController {
 
     //View One Activity
     @GetMapping("/{id}")
-    public DailyActivity viewOneActivity(@PathVariable long id) {
-        Optional <DailyActivity> activity = activityService.viewOneActivity(id);
-        if (activity.isEmpty()){
-            throw new ApiRequestException("Activity not found");
-        }
-        return activity.get();
+    public ResponseEntity<ViewOneActivityResponse> viewOneActivity(@PathVariable long id) {
+        ViewOneActivityResponse activity = activityService.viewOneActivity(id);
+        return ResponseEntity.ok().body(activity);
     }
+
     @GetMapping("/activity-by-date-range")
-    public ResponseEntity<List<ActivityDateRangeResponse>> activityByDateRange(@RequestBody ActivityDateRangeRequest request) throws ParseException {
+    public ResponseEntity<List<ActivityDateRangeResponse>> activityByDateRange(@RequestBody ActivityDateRangeRequest request) throws ApiRequestException {
         List<ActivityDateRangeResponse> activityDateRangeResponses= activityService.getActivityByDateRange(request);
         return ResponseEntity.ok().body(activityDateRangeResponses);
     }
 
-    @PostMapping("/upload-image/{id}")
-    public ResponseEntity<String> uploadImage(@PathVariable("id") long id,
-                                              @RequestParam("file") MultipartFile file) {
-        try {
-            String imageUrl = activityService.uploadImage(id, file);
-            return ResponseEntity.ok(imageUrl);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Image upload failed");
-        }
-    }
+//    @PostMapping("/upload-image/{id}")
+//    public ResponseEntity<String> uploadImage(@PathVariable("id") long id,
+//                                              @RequestParam("file") MultipartFile file) {
+//        try {
+//            String imageUrl = activityService.uploadImage(id, file);
+//            return ResponseEntity.ok(imageUrl);
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Image upload failed");
+//        }
+//    }
 
 
 
