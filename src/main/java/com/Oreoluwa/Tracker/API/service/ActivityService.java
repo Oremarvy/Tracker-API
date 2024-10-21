@@ -11,15 +11,19 @@ import com.Oreoluwa.Tracker.API.model.UserModel;
 import com.Oreoluwa.Tracker.API.repository.ActivityRepository;
 
 import com.Oreoluwa.Tracker.API.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
 import java.sql.Timestamp;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import java.util.stream.Collectors;
@@ -38,6 +42,8 @@ public class ActivityService {
     private UserRepository userRepository;
     @Autowired
     private UserService userService;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional
     public CreateActivityResponse createDailyActivity(String userIdRequest, CreateActivityRequest activity) throws ApiRequestException {
@@ -48,8 +54,8 @@ public class ActivityService {
         }
         UserModel userModel = userId.get();
         LocalDate createdDate = LocalDate.now();
-        Timestamp startDate = Timestamp.valueOf(createdDate.atStartOfDay());
-        log.info("Date ----> {}", startDate);
+        LocalDateTime startDate = createdDate.atStartOfDay();
+        log.info("LocalDateTime ----> {}", startDate);
         log.info("Local Date ----> {}", LocalDate.now());
         Optional<DailyActivity> existingActivity = activityRepository
                 .findByUserIdAndCreatedDate(userModel, startDate);
@@ -80,30 +86,37 @@ public class ActivityService {
         createDailyActivity.setUserId(userModel);
         createDailyActivity.setSubject(activity.getSubject());
         createDailyActivity.setDescription((activity.getDescription()));
-
+        createDailyActivity.setCreatedDate(LocalDateTime.now());
         createDailyActivity.setSupervisor(activity.getSupervisor());
         createDailyActivity.setLinkedinUrl(activity.getLinkedinUrl());
 
         activityRepository.save(createDailyActivity);
+        entityManager.flush();  // Force Hibernate to send SQL update to the database
 
         return CreateActivityResponse.builder().status("Completed")
                 .message("Activity created successfully").build();
     }
 
 
-    public UpdateActivityResponse updateDailyActivity(UpdateActivityRequest details) throws ApiRequestException {
-        Optional<DailyActivity> findActivity = activityRepository
-                .findBySubject(details.getSubject());
+    public UpdateActivityResponse updateDailyActivity(long id, UpdateActivityRequest details, long userId) throws ApiRequestException {
 
-        if (findActivity.isEmpty()) {
-            throw new ApiRequestException("Update doesn't exist");
+        Optional<UserModel> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new ApiRequestException("User not found");
         }
 
 
+        Optional<DailyActivity> findActivity = activityRepository
+                .findById(id);
+        if (findActivity.isEmpty()) {
+            throw new ApiRequestException("Update doesn't exist");
+        }
+        UserModel userModel = userOptional.get();
         DailyActivity updateDailyActivity = findActivity.get();
         List<String> fileUploadResponse = new ArrayList<>();
 
-        if (!details.getFile().isEmpty()) {
+
+        if (details.getFile() != null && !details.getFile().isEmpty()) {
             details.getFile().stream().forEach(file -> {
                 CloudinaryResponse response = cloudinaryService.uploadFile(file);
                 fileUploadResponse.add(response.getSecureUrl());
@@ -112,18 +125,18 @@ public class ActivityService {
             updateDailyActivity.setImageUrl(String.join(",",fileUploadResponse) );
         }
 
-
+        updateDailyActivity.setUserId(userModel);
         updateDailyActivity.setSubject(details.getSubject());
         updateDailyActivity.setDescription(details.getDescription());
         updateDailyActivity.setSupervisor(details.getSupervisor());
         updateDailyActivity.setLinkedinUrl(details.getLinkedinUrl());
+        updateDailyActivity.setUpdatedDate(LocalDateTime.now());
 
         activityRepository.save(updateDailyActivity);
         return UpdateActivityResponse.builder().status("Updated")
                 .message("Activity updated successfully").build();
 
     }
-
 
 //    public String uploadImage(long id, MultipartFile file) throws Exception {
 //        // 1. Fetch the activity by ID
@@ -160,9 +173,11 @@ public class ActivityService {
 
     public ViewOneActivityResponse viewOneActivity(long id) {
         Optional<DailyActivity> optionalDailyActivity = activityRepository.findById(id);
+        if(optionalDailyActivity.isEmpty()) throw new ApiRequestException("Activity not found with id \" + id");
 
         DailyActivity foundActivity = optionalDailyActivity.get();
         Optional<UserModel> userModel = userRepository.findById(foundActivity.getUserId().getId());
+        if(userModel.isEmpty()) throw new ApiRequestException("User not found with id ");
 
         UserModel user = userModel.get();
 

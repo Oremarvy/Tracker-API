@@ -1,22 +1,12 @@
 package com.Oreoluwa.Tracker.API.model;
 
 
-import com.cloudinary.*;
-import com.cloudinary.utils.ObjectUtils;
-import io.github.cdimascio.dotenv.Dotenv;
-
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-
 import jakarta.persistence.*;
-
 import lombok.Data;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 
-
-import java.util.Date;
 
 @Entity
 @Table(name = "activity")
@@ -46,7 +36,7 @@ public class DailyActivity {
 
 
     private String linkedinUrl;
-    private String twitterUrl;
+
 
     @CreatedDate
     @Column(updatable = false)

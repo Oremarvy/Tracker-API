@@ -48,8 +48,8 @@ public class ActivityController {
 
     //Update Daily activity
     @PutMapping("/{id}")
-    public ResponseEntity<UpdateActivityResponse> updateDailyActivity(@PathVariable long id, @RequestBody UpdateActivityRequest details) throws ApiRequestException {
-        UpdateActivityResponse response = activityService.updateDailyActivity( details);
+    public ResponseEntity<UpdateActivityResponse> updateDailyActivity(@RequestHeader("user_id") long userId, @PathVariable long id, @Valid @ModelAttribute UpdateActivityRequest details) throws ApiRequestException {
+        UpdateActivityResponse response = activityService.updateDailyActivity(id, details, userId);
 
         return ResponseEntity.ok().body(response);
                 //new ("Completed", "Updated Successfully");
@@ -66,7 +66,7 @@ public class ActivityController {
     @GetMapping("/{id}")
     public ResponseEntity<ViewOneActivityResponse> viewOneActivity(@PathVariable long id) {
         ViewOneActivityResponse activity = activityService.viewOneActivity(id);
-        return ResponseEntity.ok().body(activity);
+        return ResponseEntity.ok(activity);
     }
 
     @GetMapping("/activity-by-date-range")
