@@ -69,7 +69,7 @@ public class ActivityController {
         return ResponseEntity.ok(activity);
     }
 
-    @GetMapping("/activity-by-date-range")
+    @PostMapping("/activity-by-date-range")
     public ResponseEntity<List<ActivityDateRangeResponse>> activityByDateRange(@RequestBody ActivityDateRangeRequest request) throws ApiRequestException {
         List<ActivityDateRangeResponse> activityDateRangeResponses= activityService.getActivityByDateRange(request);
         return ResponseEntity.ok().body(activityDateRangeResponses);

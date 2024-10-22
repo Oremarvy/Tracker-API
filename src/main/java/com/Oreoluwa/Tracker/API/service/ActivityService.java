@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 import java.util.stream.Collectors;
@@ -199,17 +200,22 @@ public class ActivityService {
 
     public List<ActivityDateRangeResponse> getActivityByDateRange(ActivityDateRangeRequest dateRangeRequest) throws ApiRequestException {
 
-        //SimpleDateFormat endDate= new SimpleDateFormat("yyyy-MM-dd");
-        String startDateStr = dateRangeRequest.getStartDate() + " 00:00:00";
-        String endDateStr = dateRangeRequest.getEndDate() + " 23:59:59";
+        String startDateStr = dateRangeRequest.getStartDate();
+        String endDateStr = dateRangeRequest.getEndDate();
 
-        Timestamp startDate = Timestamp.valueOf(startDateStr);
-        Timestamp endDate = Timestamp.valueOf(endDateStr);
+        // Parse strings to LocalDate
+        LocalDate startDate = LocalDate.parse(startDateStr);
+        LocalDate endDate = LocalDate.parse(endDateStr);
+
+        // Convert LocalDate to LocalDateTime for the start and end of the day
+        LocalDateTime startDateTime = startDate.atStartOfDay(); // 00:00:00
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX); // 23:59:59
+
 
         List<DailyActivity> activities =
                 activityRepository.findAllByCreatedDateBetween
-                        (startDate,
-                                endDate);
+                        (startDateTime,
+                                endDateTime);
         if (activities.isEmpty()) {
             throw new ApiRequestException("No activities found for the specified date range");
         }
@@ -220,7 +226,7 @@ public class ActivityService {
             response.setSubject(mappedActivities.getSubject());
             response.setSupervisor(mappedActivities.getSupervisor());
             response.setDescription(mappedActivities.getDescription());
-            //response.setImage();
+            response.setImageUrl(Collections.singletonList(mappedActivities.getImageUrl()));
             response.setCreatedDate(mappedActivities.getCreatedDate());
             response.setUpdatedDate(mappedActivities.getUpdatedDate());
             response.setLinkedinUrl(mappedActivities.getLinkedinUrl());
