@@ -2,6 +2,7 @@ package com.Oreoluwa.Tracker.API.service;
 
 import com.Oreoluwa.Tracker.API.Exception.ApiRequestException;
 import com.Oreoluwa.Tracker.API.domain.request.CreateUserRequest;
+import com.Oreoluwa.Tracker.API.domain.response.CloudinaryResponse;
 import com.Oreoluwa.Tracker.API.domain.response.CreateUserResponse;
 import com.Oreoluwa.Tracker.API.domain.response.UpdateUserResponse;
 import com.Oreoluwa.Tracker.API.model.UserModel;
@@ -19,6 +20,8 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
 
     public CreateUserResponse createUser(CreateUserRequest user) {
@@ -31,6 +34,11 @@ public class UserService {
             throw new ApiRequestException("PhoneNumber already exists");
         }
         UserModel createUser = new UserModel();
+
+        if (user.getFile().isEmpty()){
+            CloudinaryResponse response = cloudinaryService.uploadFile(user.getFile());
+            createUser.setProfilePictureUrl(response.getSecureUrl());
+        }
         createUser.setFirstName(user.getFirstName());
         createUser.setLastName(user.getLastName());
         createUser.setEmail(user.getEmail());
@@ -41,6 +49,7 @@ public class UserService {
         createUser.setTeam(user.getTeam());
         createUser.setSchool(user.getSchool());
         createUser.setLinkedinUrl(user.getLinkedinUrl());
+
 
 
         userRepository.save(createUser);
@@ -55,6 +64,10 @@ public class UserService {
         }
 
         UserModel getUser= findUser.get();
+        if(userDetails.getFile().isEmpty()){
+            CloudinaryResponse response = cloudinaryService.uploadFile(userDetails.getFile());
+            getUser.setProfilePictureUrl(response.getSecureUrl());
+        }
         getUser.setFirstName(userDetails.getFirstName());
         getUser.setLastName(userDetails.getLastName());
         getUser.setEmail(userDetails.getEmail());
@@ -66,9 +79,11 @@ public class UserService {
         getUser.setSchool(userDetails.getSchool());
         getUser.setLinkedinUrl(userDetails.getLinkedinUrl());
 
+
         userRepository.save(getUser);
         return UpdateUserResponse.builder().status("Completed").message("User updated successfully").build();
     }
+
 
     public Optional<UserModel> viewUserProfile(long id){
 

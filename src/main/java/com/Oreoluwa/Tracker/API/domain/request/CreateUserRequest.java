@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Data
@@ -38,6 +39,8 @@ public class CreateUserRequest {
     @Column(nullable = false)
     @NotBlank(message = "supervisor is mandatory")
     private String supervisor;
+
+    private MultipartFile file;
 
     @Column(nullable = false)
     @NotBlank(message = "department is mandatory")

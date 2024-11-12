@@ -48,6 +48,8 @@ public class UserModel {
 
     private String linkedinUrl;
 
+    private String profilePictureUrl;
+
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdDate;
