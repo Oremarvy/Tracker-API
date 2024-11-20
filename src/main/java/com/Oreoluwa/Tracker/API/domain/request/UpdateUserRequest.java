@@ -13,6 +13,10 @@ public class UpdateUserRequest {
 
     private String lastName;
 
+    private String username;
+
+    private String password;
+
     private String email;
 
     private String phoneNumber;
@@ -28,8 +32,6 @@ public class UpdateUserRequest {
     private String school;
 
     private String linkedinUrl;
-
-    private String profilePictureUrl;
 
     private MultipartFile file;
 

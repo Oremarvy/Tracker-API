@@ -5,14 +5,20 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
 @Data
 @NoArgsConstructor
-public class UserModel {
+public class UserModel implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
 
@@ -24,8 +30,13 @@ public class UserModel {
 
     private String lastName;
 
-    private String email;
+    @Column(unique = true, nullable = false)
+    private String username;
 
+    @NotBlank(message = "password is very essential")
+    private String password;
+
+    private String email;
 
     private String phoneNumber;
 
@@ -68,5 +79,24 @@ public class UserModel {
     private void onUpdate() {
 
         updatedDate = new Date();
+    }
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(role.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+
+    @Override
+    public String getUsername() {
+        return username;
     }
 }

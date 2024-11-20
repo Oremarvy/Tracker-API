@@ -24,6 +24,11 @@ public class CreateUserRequest {
     @Size(min = 2, max = 20, message = "Last name must be between 20 and 50 characters")
     private String lastName;
 
+    @Column(unique = true, nullable = false)
+    private String username;
+
+    private String password;
+
     @Column (nullable = false)
     @NotBlank(message = "Email is mandatory")
     //@Size(min = 20, max = 70, message = "Email must be between 20 and 70 characters")

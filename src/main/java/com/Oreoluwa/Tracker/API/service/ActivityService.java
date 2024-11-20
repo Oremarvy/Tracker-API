@@ -80,7 +80,6 @@ public class ActivityService {
                 imageUrlList.add(response.getSecureUrl());
 
             });
-            // CloudinaryResponse response = cloudinaryService.uploadFile(file);
 
             createDailyActivity.setImageUrl(String.join(",",imageUrlList) );
         }

@@ -1,14 +1,17 @@
 package com.Oreoluwa.Tracker.API.service;
 
+import com.Oreoluwa.Tracker.API.Auth.AuthenticationResponse;
 import com.Oreoluwa.Tracker.API.Exception.ApiRequestException;
 import com.Oreoluwa.Tracker.API.domain.request.CreateUserRequest;
+import com.Oreoluwa.Tracker.API.domain.request.UpdateUserRequest;
 import com.Oreoluwa.Tracker.API.domain.response.CloudinaryResponse;
-import com.Oreoluwa.Tracker.API.domain.response.CreateUserResponse;
-import com.Oreoluwa.Tracker.API.domain.response.UpdateUserResponse;
+import com.Oreoluwa.Tracker.API.model.Role;
 import com.Oreoluwa.Tracker.API.model.UserModel;
 import com.Oreoluwa.Tracker.API.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,9 +25,15 @@ public class UserService {
     private UserRepository userRepository;
     @Autowired
     private CloudinaryService cloudinaryService;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private AuthenticationManager authManager;
+    @Autowired
+    private JWTService jwtService;
 
 
-    public CreateUserResponse createUser(CreateUserRequest user) {
+    public AuthenticationResponse createUser(CreateUserRequest user) {
         Optional<UserModel> userModel= userRepository.findByEmail(user.getEmail());
         if(userModel.isPresent()){
             throw new ApiRequestException("User with this email already exists");
@@ -41,6 +50,8 @@ public class UserService {
         }
         createUser.setFirstName(user.getFirstName());
         createUser.setLastName(user.getLastName());
+        createUser.setUsername(user.getUsername());
+        createUser.setPassword(passwordEncoder.encode(user.getPassword()));
         createUser.setEmail(user.getEmail());
         createUser.setPhoneNumber(user.getPhoneNumber());
         createUser.setAddress(user.getAddress());
@@ -49,27 +60,31 @@ public class UserService {
         createUser.setTeam(user.getTeam());
         createUser.setSchool(user.getSchool());
         createUser.setLinkedinUrl(user.getLinkedinUrl());
+        createUser.setRole(Role.USER);
+        var jwtToken = jwtService.generateToken(createUser);
 
 
 
         userRepository.save(createUser);
 
-        return  CreateUserResponse.builder().status("Active").message("User is created successfully ").build();
+        return  AuthenticationResponse.builder().token(jwtToken).build();
     }
 
-    public UpdateUserResponse updateUser(long id, CreateUserRequest userDetails) {
+    public AuthenticationResponse updateUser(long id, UpdateUserRequest userDetails) {
         Optional<UserModel> findUser= userRepository.findById(id);
         if(findUser.isEmpty()){
             throw  new ApiRequestException("Update doesn't exist");
         }
 
         UserModel getUser= findUser.get();
-        if(userDetails.getFile().isEmpty()){
+        if(userDetails.getFile() != null && !userDetails.getFile().isEmpty()){
             CloudinaryResponse response = cloudinaryService.uploadFile(userDetails.getFile());
             getUser.setProfilePictureUrl(response.getSecureUrl());
         }
         getUser.setFirstName(userDetails.getFirstName());
         getUser.setLastName(userDetails.getLastName());
+        getUser.setUsername(userDetails.getUsername());
+        getUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
         getUser.setEmail(userDetails.getEmail());
         getUser.setPhoneNumber(userDetails.getPhoneNumber());
         getUser.setAddress(userDetails.getAddress());
@@ -78,10 +93,15 @@ public class UserService {
         getUser.setTeam(userDetails.getTeam());
         getUser.setSchool(userDetails.getSchool());
         getUser.setLinkedinUrl(userDetails.getLinkedinUrl());
+        getUser.setRole(Role.USER);
+
+        var jwtToken = jwtService.generateToken(getUser);
 
 
         userRepository.save(getUser);
-        return UpdateUserResponse.builder().status("Completed").message("User updated successfully").build();
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .build();
     }
 
 
@@ -94,6 +114,16 @@ public class UserService {
 
         return userRepository.findAll();
     }
+
+//    public String verify(UserModel user){
+//         Authentication authentication = authManager.authenticate(
+//                 new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
+//
+//         if(authentication.isAuthenticated())
+//             return jwtService.generateToken(user.getUsername());
+//
+//         return "Failed";
+//    }
 
 //    public UserModel findUserById(Long id) throws ApiRequestException {
 //        return userRepository.findById(id)
